@@ -1,77 +1,85 @@
-import { Request, Response } from "express";
-import asyncHandler from "express-async-handler";
-import { User } from "../models/user";
-import { BadRequestError } from "../errors/badRequestError";
-import { generateToken } from "../utils/generateToken";
-import { sendConfirmationEmail } from "../utils/sendConfirmationEmail";
-import { verifyToken } from "../utils/verifyToken";
-import { Password } from "../utils/passwordManager";
+import { Request, Response } from 'express';
+import { Controller, Methods } from './Controller';
+import {
+  validateRequest,
+  currentUser,
+  checkSignUpCredentials,
+  checkSignInCredentials,
+} from '../middlewares';
+import { UserService } from '../services/UserService';
 
-const signUpUser = asyncHandler(async (req: Request, res: Response) => {
-  const { username, email, password } = req.body;
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    throw new BadRequestError("Email in use");
+export class UserController extends Controller {
+  path = '/api/users';
+
+  routes = [
+    {
+      path: '/signup',
+      method: Methods.POST,
+      handler: this.signUpUser,
+      localMiddleware: [validateRequest],
+      checkBody: checkSignUpCredentials,
+    },
+    {
+      path: '/signin',
+      method: Methods.POST,
+      handler: this.signInUser,
+      localMiddleware: [validateRequest],
+      checkBody: checkSignInCredentials,
+    },
+    {
+      path: '/signout',
+      method: Methods.POST,
+      handler: this.signOutUser,
+      localMiddleware: [],
+    },
+    {
+      path: '/currentuser',
+      method: Methods.GET,
+      handler: this.getCurrentUser,
+      localMiddleware: [currentUser],
+    },
+    {
+      path: '/confirm/:confirmationCode',
+      method: Methods.GET,
+      handler: this.confirmUser,
+      localMiddleware: [],
+    },
+  ];
+
+  constructor() {
+    super();
   }
-  const confirmationCode = generateToken({ email });
-  const user = User.build({ username, email, password, confirmationCode });
-  await user.save();
-  const userJWT = generateToken({ id: user.id, email: user.email });
-  req.session = { jwt: userJWT };
-  sendConfirmationEmail(username, email, confirmationCode);
-  res.status(201).send(user);
-});
 
-const signInUser = asyncHandler(async (req: Request, res: Response) => {
-  const { email, password } = req.body;
-  const existingUser = await User.findOne({ email });
-  if (!existingUser) {
-    throw new BadRequestError("Invalid Credentials");
+  async signUpUser(req: Request, res: Response) {
+    const { username, email, password } = req.body;
+    const { user, userJWT } = await UserService.signUp(
+      username,
+      email,
+      password
+    );
+    req.session = { jwt: userJWT };
+    res.status(201).send(user);
   }
-  const passwordsMatch = await Password.compare(
-    existingUser.password,
-    password
-  );
-  if (!passwordsMatch) {
-    throw new BadRequestError("Invalid Credentials");
+
+  async signInUser(req: Request, res: Response) {
+    const { email, password } = req.body;
+    const { existingUser, userJWT } = await UserService.signIn(email, password);
+    req.session = { jwt: userJWT };
+    res.status(200).send(existingUser);
   }
-  if (existingUser.status === "Pending") {
-    throw new BadRequestError("Pending account. Please verify your email.");
+
+  signOutUser(req: Request, res: Response) {
+    req.session = null;
+    res.send({});
   }
-  const userJWT = generateToken({
-    id: existingUser.id,
-    email: existingUser.email,
-  });
-  req.session = { jwt: userJWT };
-  res.status(200).send(existingUser);
-});
 
-const getCurrentUser = (req: Request, res: Response) => {
-  res.send({ currentUser: req.currentUser || null });
-};
-
-const signOutUser = (req: Request, res: Response) => {
-  req.session = null;
-  res.send({});
-};
-
-const confirmUser = asyncHandler(async (req: Request, res: Response) => {
-  const { confirmationCode } = req.params;
-  try {
-    const { email } = verifyToken(confirmationCode) as {
-      email: string;
-      iat: number;
-    };
-    const existingUser = await User.findOne({ email });
-    if (!existingUser) {
-      throw new BadRequestError("User not found.");
-    }
-    existingUser.status = "Active";
-    await existingUser.save();
-    res.status(200).send({ message: "Email verified!" });
-  } catch (err) {
-    throw new BadRequestError("Invalid token");
+  getCurrentUser(req: Request, res: Response) {
+    res.send({ currentUser: req.currentUser || null });
   }
-});
 
-export { signUpUser, signInUser, signOutUser, getCurrentUser, confirmUser };
+  async confirmUser(req: Request, res: Response) {
+    const { confirmationCode } = req.params;
+    const isConfirm = await UserService.confirm(confirmationCode);
+    if (isConfirm) res.status(200).send({ message: 'Email verified!' });
+  }
+}
