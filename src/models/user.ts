@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
-import { Password } from '../utils/Password';
+import mongoose from "mongoose";
+import { PasswordService } from "../services";
 
 interface UserAttrs {
   username: string;
@@ -38,8 +38,8 @@ const userSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['Pending', 'Active'],
-      default: 'Pending',
+      enum: ["Pending", "Active"],
+      default: "Pending",
     },
     confirmationCode: {
       type: String,
@@ -59,10 +59,10 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-userSchema.pre('save', async function (done) {
-  if (this.isModified('password')) {
-    const hashed = await Password.toHash(this.get('password'));
-    this.set('password', hashed);
+userSchema.pre("save", async function (done) {
+  if (this.isModified("password")) {
+    const hashed = await PasswordService.toHash(this.get("password"));
+    this.set("password", hashed);
   }
   done();
 });
@@ -71,6 +71,6 @@ userSchema.statics.build = (attrs: UserAttrs) => {
   return new User(attrs);
 };
 
-const User = mongoose.model<UserDoc, UserModel>('User', userSchema);
+const User = mongoose.model<UserDoc, UserModel>("User", userSchema);
 
 export { User };

@@ -1,48 +1,48 @@
-import { Request, Response } from 'express';
-import { Controller, Methods } from './Controller';
+import { Request, Response } from "express";
+import { Controller, Methods } from "./Controller";
 import {
   validateRequest,
   currentUser,
   checkSignUpCredentials,
   checkSignInCredentials,
-} from '../middlewares';
-import { UserService } from '../services/UserService';
+} from "../middlewares";
+import { UserService } from "../services/UserService";
 
 export class UserController extends Controller {
-  path = '/api/users';
+  path = "/api/users";
 
   routes = [
     {
-      path: '/signup',
+      path: "/signup",
       method: Methods.POST,
       handler: this.signUpUser,
-      localMiddleware: [validateRequest],
-      checkBody: checkSignUpCredentials,
+      middlewares: [validateRequest],
+      validateBody: checkSignUpCredentials,
     },
     {
-      path: '/signin',
+      path: "/signin",
       method: Methods.POST,
       handler: this.signInUser,
-      localMiddleware: [validateRequest],
-      checkBody: checkSignInCredentials,
+      middlewares: [validateRequest],
+      validateBody: checkSignInCredentials,
     },
     {
-      path: '/signout',
+      path: "/signout",
       method: Methods.POST,
       handler: this.signOutUser,
-      localMiddleware: [],
+      middlewares: [],
     },
     {
-      path: '/currentuser',
+      path: "/currentuser",
       method: Methods.GET,
       handler: this.getCurrentUser,
-      localMiddleware: [currentUser],
+      middlewares: [currentUser],
     },
     {
-      path: '/confirm/:confirmationCode',
+      path: "/confirm/:confirmationCode",
       method: Methods.GET,
       handler: this.confirmUser,
-      localMiddleware: [],
+      middlewares: [],
     },
   ];
 
@@ -80,6 +80,6 @@ export class UserController extends Controller {
   async confirmUser(req: Request, res: Response) {
     const { confirmationCode } = req.params;
     const isConfirm = await UserService.confirm(confirmationCode);
-    if (isConfirm) res.status(200).send({ message: 'Email verified!' });
+    if (isConfirm) res.status(200).send({ message: "Email verified!" });
   }
 }
