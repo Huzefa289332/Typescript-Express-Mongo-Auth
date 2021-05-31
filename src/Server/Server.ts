@@ -1,13 +1,13 @@
 import { Application, RequestHandler } from "express";
-import { Controller } from "./controllers/Controller";
-import { connectDB } from "./config/db";
+import { Route } from "../routes/Route";
+import { connectDB } from "../config/db";
 
 export class Server {
   constructor(private app: Application) {}
 
   private preMiddlewares: RequestHandler[] = [];
   private postMiddlewared: RequestHandler[] = [];
-  private controllers: Controller[] = [];
+  private routes: Route[] = [];
 
   public setPreMiddlewares(preMiddlewares: RequestHandler[]): void {
     this.preMiddlewares = preMiddlewares;
@@ -17,17 +17,17 @@ export class Server {
     this.postMiddlewared = postMiddlewares;
   }
 
-  public setControllers(controllers: Controller[]): void {
-    this.controllers = controllers;
+  public setRoutes(routes: Route[]): void {
+    this.routes = routes;
   }
 
   public start(): void {
     this.preMiddlewares.forEach(middleware => this.app.use(middleware));
-    this.controllers.forEach(controller =>
-      this.app.use(controller.path, controller.setRoutes())
-    );
+    this.routes.forEach(route => this.app.use(route.path, route.setRoutes()));
     this.postMiddlewared.forEach(middleware => this.app.use(middleware));
+
     connectDB();
+
     this.app.listen(process.env.PORT, () => {
       console.log(`Listen on port ${process.env.PORT}!`);
     });

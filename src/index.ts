@@ -3,9 +3,9 @@ import { config } from "dotenv";
 import cookieSession from "cookie-session";
 import { json } from "body-parser";
 import { errorHandler, notFound } from "./middlewares";
-import { UserController } from "./controllers/UserController";
-import { Controller } from "./controllers/Controller";
-import { Server } from "./Server";
+import { Route } from "./routes/Route";
+import { UserRoute } from "./routes/UserRoute";
+import { Server } from "./Server/Server";
 import "express-async-errors";
 
 config();
@@ -21,11 +21,11 @@ const postMiddlewared: RequestHandler[] = [
   notFound,
   errorHandler as () => void,
 ];
-const controllers: Controller[] = [new UserController()];
+const routes: Route[] = [new UserRoute()];
 
 const app = express();
 const server = new Server(app);
-server.setControllers(controllers);
+server.setRoutes(routes);
 server.setPreMiddlewares(preMiddlewares);
 server.setPostMiddlewares(postMiddlewared);
 

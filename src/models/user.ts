@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { PasswordService } from "../services";
+import { UserRepo } from "../repositories/user/UserRepo";
 
 interface UserAttrs {
   username: string;
@@ -61,7 +61,7 @@ const userSchema = new mongoose.Schema(
 
 userSchema.pre("save", async function (done) {
   if (this.isModified("password")) {
-    const hashed = await PasswordService.toHash(this.get("password"));
+    const hashed = await UserRepo.hashPassword(this.get("password"));
     this.set("password", hashed);
   }
   done();

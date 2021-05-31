@@ -1,4 +1,4 @@
-import { Router, RequestHandler, response } from "express";
+import { Router, RequestHandler } from "express";
 import { ValidationChain } from "express-validator";
 
 export enum Methods {
@@ -8,7 +8,7 @@ export enum Methods {
   DELETE = "delete",
 }
 
-interface Route {
+interface IRoute {
   path: string;
   method: Methods;
   handler: RequestHandler;
@@ -16,10 +16,10 @@ interface Route {
   validateBody?: ValidationChain[];
 }
 
-export abstract class Controller {
+export abstract class Route {
   private router: Router = Router();
   public abstract path: string;
-  protected abstract routes: Route[] = [];
+  protected abstract routes: IRoute[] = [];
 
   public setRoutes = (): Router => {
     this.routes.map(route => {
